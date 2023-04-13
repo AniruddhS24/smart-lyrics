@@ -11,7 +11,13 @@ import torch.nn as nn
 class GenreEmbedding_LSTM(nn.Module):
     def __init__(self, vocab_size, lstm_embedding_dim, lstm_hidden_dim, genre_embedding_dim, num_categories):
         super(GenreEmbedding_LSTM, self).__init__()
-
+        self.kwargs = {
+            'vocab_size': vocab_size,
+            'lstm_embedding_dim': lstm_embedding_dim,
+            'lstm_hidden_dim': lstm_hidden_dim,
+            'genre_embedding_dim': genre_embedding_dim,
+            'num_categories': num_categories
+        }
         self.vocab_size = vocab_size
         self.lstm_embedding_dim = lstm_embedding_dim
         self.lstm_hidden_dim = lstm_hidden_dim
@@ -47,39 +53,6 @@ class GenreEmbedding_LSTM(nn.Module):
         return x
 
 
-def train_embedding_model(model, train_loader, epochs, lr=0.001):
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
-
-    for epoch in range(epochs):
-        model.train()
-        for batch in train_loader:
-            optimizer.zero_grad()
-            x, y = batch
-            y_hat = model(x)
-            loss = criterion(y_hat, y)
-            loss.backward()
-            optimizer.step()
-
-        if epoch % 10 == 0:
-            print(f'Epoch {epoch}: {loss.item()}')
-
-
-def test_embedding_model(model, test_loader):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for batch in test_loader:
-            x, y = batch
-            y_hat = model(x)
-            _, predicted = torch.argmax(y_hat, dim=1)
-            total += y.size(0)
-            correct += (predicted == y).sum().item()
-
-    print(f'Accuracy: {100 * correct / total}')
-
-
-model = GenreEmbedding_LSTM(vocab_size=100, lstm_embedding_dim=10,
-                            lstm_hidden_dim=20, genre_embedding_dim=30, num_categories=5)
-print(model.get_embeddings().shape)
+# model = GenreEmbedding_LSTM(vocab_size=100, lstm_embedding_dim=10,
+#                             lstm_hidden_dim=20, genre_embedding_dim=30, num_categories=5)
+# print(model.get_embeddings().shape)
