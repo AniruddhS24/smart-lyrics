@@ -8,7 +8,7 @@ kwargs, state = torch.load('./models/lstm_vae_2023-04-13_15-35-13.pt')
 model = LSTM_VAE(**kwargs)
 model.load_state_dict(state)
 model.eval()
-# right now we give it a random vector, but this should be a genre embedding vector
-song = model.sample(torch.randn(1, 32))
+genre_embeddings = torch.load('./models/genre_embeddings.pt')
+song = model.sample(genre_embeddings[0].unsqueeze(0))  # pop female song
 for i in range(song.shape[0]):
     print(tokenizer.decode_text(song[i]))

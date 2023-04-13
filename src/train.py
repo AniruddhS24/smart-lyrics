@@ -53,7 +53,7 @@ def test_embedding_model(model, test_loader):
         for batch in test_loader:
             x, y = batch
             y_hat = model(x)
-            _, predicted = torch.argmax(y_hat, dim=1)
+            predicted = torch.argmax(y_hat, dim=1)
             total += y.size(0)
             correct += (predicted == y).sum().item()
 

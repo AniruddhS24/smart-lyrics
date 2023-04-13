@@ -30,7 +30,8 @@ class Dataset:
         self.labels = ['pop female', 'pop male',
                        'rock female', 'rock male',
                        'rap female', 'rap male',
-                       'country female', 'country male']
+                       'country female', 'country male',
+                       'rb female', 'rb male']
         self.num_labels = len(self.labels)
         self.labels_to_idx = {label: i for i, label in enumerate(self.labels)}
         self.idx_to_labels = {i: label for i, label in enumerate(self.labels)}
@@ -39,9 +40,11 @@ class Dataset:
         self.vocab_size = self.tokenizer.vocab_size
 
         self.x, self.y = self.process(pd.read_csv(data_file))
+        self.size = len(self.x)
+        print(f'Dataset of {self.size} songs loaded...')
 
     def __len__(self):
-        return len(self.data)
+        return self.size
 
     def process(self, df):
         x = np.zeros((len(df), self.max_len), dtype=np.int64)
@@ -78,6 +81,10 @@ def create_loaders(data_x, data_y, batch_size):
         Songs(train_x, train_y), batch_size)
     test_loader = torch.utils.data.DataLoader(
         Songs(test_x, test_y), batch_size)
+    print('Data loaders created...')
+    print('Batch size: {}'.format(batch_size))
+    print('Train size: {}'.format(len(train_x)))
+    print('Test size: {}'.format(len(test_x)))
     return train_loader, test_loader
 
 
