@@ -9,7 +9,7 @@ import torch.nn as nn
 
 
 class GenreEmbedding_LSTM(nn.Module):
-    def __init__(self, vocab_size, lstm_embedding_dim, lstm_hidden_dim, genre_embedding_dim, num_categories):
+    def __init__(self, vocab_size, lstm_embedding_dim, lstm_hidden_dim, genre_embedding_dim, num_categories, device=torch.device('cpu')):
         super(GenreEmbedding_LSTM, self).__init__()
         self.kwargs = {
             'vocab_size': vocab_size,
@@ -31,6 +31,9 @@ class GenreEmbedding_LSTM(nn.Module):
         self.hidden2genre = nn.Linear(lstm_hidden_dim, genre_embedding_dim)
         self.relu = nn.ReLU()
         self.genre2category = nn.Linear(genre_embedding_dim, num_categories)
+
+        self.device = device
+        self.to(device)
 
     def get_embeddings(self):
         # returns (num_categories, genre_embedding_dim)

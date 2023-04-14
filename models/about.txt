@@ -1,2 +1,0 @@
-all the trained models (as pickle files) go here
-See https://pytorch.org/tutorials/beginner/saving_loading_models.html

@@ -25,7 +25,7 @@ class SongTokenizer:
 
 
 class Dataset:
-    def __init__(self, data_file, max_len=512):
+    def __init__(self, data_file, device=torch.device('cpu'), max_len=512):
         self.max_len = max_len
         self.labels = ['pop female', 'pop male',
                        'rock female', 'rock male',
@@ -41,17 +41,20 @@ class Dataset:
 
         self.x, self.y = self.process(pd.read_csv(data_file))
         self.size = len(self.x)
-        print(f'Dataset of {self.size} songs loaded...')
+        self.device = device
+        self.x = self.x.to(device)
+        self.y = self.y.to(device)
+        print(f'Dataset of {self.size} songs loaded onto {device.type}...')
 
     def __len__(self):
         return self.size
 
     def process(self, df):
-        x = np.zeros((len(df), self.max_len), dtype=np.int64)
-        y = np.zeros((len(df)), dtype=np.int64)
+        x = torch.zeros((len(df), self.max_len), dtype=torch.long)
+        y = torch.zeros((len(df)), dtype=torch.long)
         for i in range(len(df)):
             row = df.iloc[i]
-            x[i, :] = self.tokenizer.encode_text(row['lyrics'])
+            x[i, :] = torch.tensor(self.tokenizer.encode_text(row['lyrics']))
             y[i] = self.labels_to_idx[row['genre'] + ' ' + row['gender']]
         return x, y
 
@@ -59,8 +62,8 @@ class Dataset:
 class Songs(Dataset):
     # len(lyrics) = len(genre_gender) = number of songs
     def __init__(self, lyrics, genre_gender):
-        self.lyrics = torch.from_numpy(lyrics)
-        self.genre_gender = torch.from_numpy(genre_gender)
+        self.lyrics = lyrics
+        self.genre_gender = genre_gender
 
     def __getitem__(self, index):
         lyric = self.lyrics[index]

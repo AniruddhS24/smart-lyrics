@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class LSTM_VAE(nn.Module):
     # from paper: (artist) genre_embed_size: 50
-    def __init__(self, vocab_size, seq_len, embed_size, hidden_size, latent_size, genre_embed_size):
+    def __init__(self, vocab_size, seq_len, embed_size, hidden_size, latent_size, genre_embed_size, device=torch.device('cpu')):
         super(LSTM_VAE, self).__init__()
         self.kwargs = {
             'vocab_size': vocab_size,
@@ -37,6 +37,9 @@ class LSTM_VAE(nn.Module):
                                self.hidden_size, batch_first=True)
         # Might need to make self.hidden_size//2 bigger, not sure
         self.fc_out = nn.Linear(self.hidden_size, self.vocab_size)
+
+        self.device = device
+        self.to(device)
 
     def encode(self, x):
         x = self.embedding(x)

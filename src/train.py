@@ -9,7 +9,7 @@ from datasets import Dataset, create_loaders
 from datetime import datetime
 
 
-def train_lstm_vae(model, train_loader, test_loader, epochs, lr=0.001):
+def train_lstm_vae(model, train_loader, test_loader, epochs, lr):
     model.train()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
@@ -26,7 +26,7 @@ def train_lstm_vae(model, train_loader, test_loader, epochs, lr=0.001):
         print(f'Epoch {epoch}: {total_loss/count}')
 
 
-def train_embedding_model(model, train_loader, val_loader, epochs, lr=0.001):
+def train_embedding_model(model, train_loader, val_loader, epochs, lr):
     print('Training embedding model...')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
@@ -82,27 +82,37 @@ def main():
                         help='Learning rate')
     args = parser.parse_args()
 
+    GENRE_EMBEDDING_SIZE = 64
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device.type)
+
     if (args.model_type == 'lstm_vae'):
-        dataset = Dataset(args.data_path)
-        # Convert genre labels to embeddings
+        # Load data
+        dataset = Dataset(args.data_path, device)
         embeds = torch.load('./models/genre_embeddings.pt')
-        new_y = np.zeros(
-            (dataset.y.shape[0], embeds.shape[1]), dtype=np.int64)
+        new_y = torch.zeros(
+            (dataset.y.shape[0], embeds.shape[1]), dtype=np.float64)
         for i in range(dataset.y.shape[0]):
             new_y[i] = embeds[dataset.y[i]]
+        new_y = new_y.to(device)
         train_loader, test_loader = create_loaders(
             dataset.x, new_y, args.batch_size)
 
+        # Train and save model
         model = LSTM_VAE(dataset.vocab_size, dataset.max_len,
-                         64, 32, 50, 32)
+                         300, 256, 32, GENRE_EMBEDDING_SIZE, device)
         train_lstm_vae(model, train_loader, test_loader, args.epochs, args.lr)
         save_model(model, args.model_type)
+
     elif (args.model_type == 'embedding_model'):
-        dataset = Dataset(args.data_path)
+        # Load data
+        dataset = Dataset(args.data_path, device)
         train_loader, test_loader = create_loaders(
             dataset.x, dataset.y, args.batch_size)
         model = GenreEmbedding_LSTM(
-            dataset.vocab_size, 64, 64, 32, dataset.num_labels)
+            dataset.vocab_size, 300, 256, GENRE_EMBEDDING_SIZE, dataset.num_labels, device)
+
+        # Train and save model
         train_embedding_model(model, train_loader,
                               test_loader, args.epochs, args.lr)
         torch.save(model.get_embeddings().detach(),
