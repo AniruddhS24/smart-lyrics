@@ -27,7 +27,8 @@ class GenreEmbedding_LSTM(nn.Module):
         self.lstm_embedding = nn.Embedding(
             vocab_size, embedding_dim=lstm_embedding_dim)
         self.lstm_encoder = nn.LSTM(
-            lstm_embedding_dim, lstm_hidden_dim, batch_first=True)
+            lstm_embedding_dim, lstm_hidden_dim, num_layers=1, batch_first=True)
+        self.dropout = nn.Dropout(0.1)
         self.hidden2genre = nn.Linear(lstm_hidden_dim, genre_embedding_dim)
         self.relu = nn.ReLU()
         self.genre2category = nn.Linear(genre_embedding_dim, num_categories)
@@ -46,6 +47,7 @@ class GenreEmbedding_LSTM(nn.Module):
         x, _ = self.lstm_encoder(x)
         # x.shape = (batch_size, seq_len, lstm_hidden_dim)
         x = x[:, -1, :]
+        x = self.dropout(x)
         # x.shape = (batch_size, lstm_hidden_dim)
         x = self.hidden2genre(x)
         # x.shape = (batch_size, genre_embedding_dim)
