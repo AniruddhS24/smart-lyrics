@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim
 from models.lstm_vae import LSTM_VAE
 from models.embedding_model import GenreEmbedding_LSTM
+from models.simple import SimpleLM
 from datasets import Dataset, create_loaders
 from datetime import datetime
 
@@ -43,6 +44,17 @@ def train_embedding_model(model, train_loader, val_loader, epochs, lr=0.001):
 
         print(f'Epoch {epoch}: {loss.item()}')
         test_embedding_model(model, val_loader)
+
+# TODO complete this
+def train_simple_model(model, train_loader, val_loader, epochs, lr=.001):
+    print('Training simple model...')
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = torch.nn.CrossEntropyLoss()
+    for epoch in range(epochs):
+        model.train()
+
+        pass
+    pass
 
 
 def test_embedding_model(model, test_loader):
@@ -86,27 +98,27 @@ def main():
         dataset = Dataset(args.data_path)
         # Convert genre labels to embeddings
         embeds = torch.load('./models/genre_embeddings.pt')
-        new_y = np.zeros(
-            (dataset.y.shape[0], embeds.shape[1]), dtype=np.int64)
+        new_y = np.zeros((dataset.y.shape[0], embeds.shape[1]), dtype=np.int64)
         for i in range(dataset.y.shape[0]):
             new_y[i] = embeds[dataset.y[i]]
-        train_loader, test_loader = create_loaders(
-            dataset.x, new_y, args.batch_size)
-
-        model = LSTM_VAE(dataset.vocab_size, dataset.max_len,
-                         64, 32, 50, 32)
+        train_loader, test_loader = create_loaders(dataset.x, new_y, args.batch_size)
+        model = LSTM_VAE(dataset.vocab_size, dataset.max_len, 64, 32, 50, 32)
         train_lstm_vae(model, train_loader, test_loader, args.epochs, args.lr)
         save_model(model, args.model_type)
+
     elif (args.model_type == 'embedding_model'):
         dataset = Dataset(args.data_path)
-        train_loader, test_loader = create_loaders(
-            dataset.x, dataset.y, args.batch_size)
-        model = GenreEmbedding_LSTM(
-            dataset.vocab_size, 64, 64, 32, dataset.num_labels)
-        train_embedding_model(model, train_loader,
-                              test_loader, args.epochs, args.lr)
-        torch.save(model.get_embeddings().detach(),
-                   './models/genre_embeddings.pt')
+        train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
+        model = GenreEmbedding_LSTM(dataset.vocab_size, 64, 64, 32, dataset.num_labels)
+        train_embedding_model(model, train_loader, test_loader, args.epochs, args.lr)
+        torch.save(model.get_embeddings().detach(), './models/genre_embeddings.pt')
+        save_model(model, args.model_type)
+
+    elif (args.model_type == 'simple_model'):
+        dataset = Dataset(args.data_path)
+        train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
+        model = SimpleLM(input_size=..., output_size=..., hidden_size=...) # TODO: finish this
+        train_simple_model(model, train_loader, test_loader, args.epochs, args.lr)
         save_model(model, args.model_type)
 
     else:
