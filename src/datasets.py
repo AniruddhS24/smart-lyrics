@@ -79,7 +79,7 @@ class Songs(Dataset):
 
 def create_loaders(data_x, data_y, batch_size):
     train_x, test_x, train_y, test_y = train_test_split(
-        data_x, data_y, test_size=0.2, random_state=42)
+        data_x, data_y, test_size=0.1, random_state=42)
     train_loader = torch.utils.data.DataLoader(
         Songs(train_x, train_y), batch_size, shuffle=True)
     test_loader = torch.utils.data.DataLoader(

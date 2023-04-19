@@ -26,15 +26,15 @@ class LSTM_VAE(nn.Module):
         # Encoder
         # from paper: bidirectional, 100 hidden units
         self.encoder = nn.LSTM(
-            self.embed_size, self.hidden_size, batch_first=True)
+            self.embed_size, self.hidden_size, batch_first=True, num_layers=1)
         self.fc_mu = nn.Linear(self.hidden_size, self.latent_size)
         self.fc_logvar = nn.Linear(self.hidden_size, self.latent_size)
 
         # Decoder
         self.fc_z = nn.Linear(
             self.latent_size + self.genre_embed_size, self.hidden_size)
-        self.decoder = nn.LSTM(self.hidden_size,
-                               self.hidden_size, batch_first=True)
+        self.decoder = nn.LSTM(self.embed_size,
+                               self.hidden_size, batch_first=True, num_layers=1)
         # Might need to make self.hidden_size//2 bigger, not sure
         self.fc_out = nn.Linear(self.hidden_size, self.vocab_size)
 
@@ -54,26 +54,35 @@ class LSTM_VAE(nn.Module):
         eps = torch.randn_like(std)
         return mu + eps*std
 
-    def decode(self, z, genre):
+    def decode(self, x, z, genre):
         z = torch.cat((z, genre), dim=1)
-        z = self.fc_z(z)
-        z = z.view(-1, 1, self.hidden_size)
-        z = z.repeat(1, self.seq_len, 1)
-        op, _ = self.decoder(z)
+        h_0 = self.fc_z(z)
+        h_0 = h_0.view(1, -1, self.hidden_size)
+        # z = z.repeat(1, self.seq_len, 1)
+        tmp = torch.zeros_like(x)
+        tmp[:, 1:] = x[:, 0:-1]
+        # x[:, 0] = 0
+        tmp = self.embedding(tmp)
+        op, _ = self.decoder(tmp, (h_0,h_0))
         op = self.fc_out(op)
         return op
 
     def forward(self, x, genre):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
-        op = self.decode(z, genre)
+        op = self.decode(x, z, genre)
         return op, mu, logvar
 
     def sample(self, genre):
+        self.eval()
         z = torch.randn(1, self.latent_size)
-        op = self.decode(z, genre)
-        op = torch.argmax(torch.softmax(op, dim=2), dim=2)
-        return op.detach().numpy()
+        x = torch.zeros(1, 512, dtype=torch.long)
+        for i in range(1, 512):
+            op = self.decode(x[:, 0:i], z, genre)
+            op = torch.softmax(op[:, -1, :], dim=1)
+            op = torch.multinomial(op, 1)
+            x[:, i] = op
+        return x.detach().numpy()
 
     def kl_divergence(self, mu, logvar):
         return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -85,7 +94,7 @@ class LSTM_VAE(nn.Module):
         recon_loss = self.reconstruction_loss(op, x)  # are words the same
         # difference between 2 distributions, form of a regularization. prevents overfitting
         kl_loss = self.kl_divergence(mu, logvar)
-        return recon_loss + kl_loss
+        return recon_loss, kl_loss
 
 
 def test(model, val_loader):
