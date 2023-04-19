@@ -7,11 +7,14 @@ class SimpleLM(nn.Module):
         self.hidden_size = hidden_size
         self.embedding = nn.Embedding(output_size, input_size)
         self.lstm = torch.nn.LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
-        self.linear = nn.Linear(hidden_size, output_size)
+        self.linear = nn.LazyLinear(output_size)
         
     # state is tuple of hidden and cell states
     def forward(self, x, state):
-        embedded = self.embedding(x) # shape: seq_len x i_o_size
-        lstm_output, (hidden_state_out, cell_state_out) = self.lstm(embedded, state)
-        linear_output = self.linear(lstm_output)
+        embedded = self.embedding(x) # torch.Size([64, 512, 64])
+        print("embedded shape:", embedded.shape)
+        lstm_output, (hidden_state_out, cell_state_out) = self.lstm(embedded, state) 
+        print("lstm shape:", lstm_output.shape) # lstm shape: torch.Size([64, 512, 128])
+        linear_output = self.linear(lstm_output) # linear_output shape: torch.Size([64, 512, 30522])
+        print("linear_output shape:", linear_output.shape)
         return linear_output, (hidden_state_out, cell_state_out)

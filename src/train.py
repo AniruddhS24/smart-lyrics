@@ -58,8 +58,11 @@ def train_simple_model(model, train_loader, val_loader, epochs, lr=.001, batch_s
         c = torch.zeros((1, batch_size, model.hidden_size))
         for batch in train_loader:
             optimizer.zero_grad()
+            # x shape (lyrics): torch.Size([64, 512]), y shape (label): torch.Size([64])
             x, y = batch
             y_hat, (h, c) = model(x, (h.detach(), c.detach()))
+            print("yhat shape:", y_hat.shape) 
+            print("y shape:", y.shape) 
             loss = criterion(y_hat, y)
             epoch_loss += loss.item()
             loss.backward()
@@ -121,7 +124,7 @@ def main():
     elif (args.model_type == 'simple_model'):
         dataset = Dataset(args.data_path)
         train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
-        model = SimpleLM(input_size=64, output_size=dataset.vocab_size, hidden_size=64) # NOTSURE: input_size=64??
+        model = SimpleLM(input_size=64, output_size=dataset.vocab_size, hidden_size=128) # NOTSURE: input_size=64??
         train_simple_model(model, train_loader, test_loader, args.epochs, args.lr, batch_size=args.batch_size)
         save_model(model, args.model_type)
 
