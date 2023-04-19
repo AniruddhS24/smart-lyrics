@@ -45,16 +45,26 @@ def train_embedding_model(model, train_loader, val_loader, epochs, lr=0.001):
         print(f'Epoch {epoch}: {loss.item()}')
         test_embedding_model(model, val_loader)
 
-# TODO complete this
-def train_simple_model(model, train_loader, val_loader, epochs, lr=.001):
+
+# assume no batching -> default for batch_size = 1
+def train_simple_model(model, train_loader, val_loader, epochs, lr=.001, batch_size=1):
     print('Training simple model...')
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = torch.nn.CrossEntropyLoss()
     for epoch in range(epochs):
         model.train()
-
-        pass
-    pass
+        epoch_loss = 0
+        h = torch.zeros((1, batch_size, model.hidden_size))
+        c = torch.zeros((1, batch_size, model.hidden_size))
+        for batch in train_loader:
+            optimizer.zero_grad()
+            x, y = batch
+            y_hat, (h, c) = model(x, (h.detach(), c.detach()))
+            loss = criterion(y_hat, y)
+            epoch_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+        print(f'Epoch {epoch}: {epoch_loss}')
 
 
 def test_embedding_model(model, test_loader):
@@ -80,18 +90,12 @@ def save_model(model, model_name):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_type', type=str,
-                        default='lstm_vae', help='Model to train')
-    parser.add_argument('--data_path', type=str,
-                        default='./data/data.csv', help='Path to data')
-    parser.add_argument('--embedding_path', type=str,
-                        default='./models/genre_embeddings.pt', help='Path to embeddings (for VAE)')
-    parser.add_argument('--epochs', type=int, default=10,
-                        help='Number of epochs to train')
-    parser.add_argument('--batch_size', type=int,
-                        default=1, help='Batch size')
-    parser.add_argument('--lr', type=float, default=0.001,
-                        help='Learning rate')
+    parser.add_argument('--model_type', type=str, default='lstm_vae', help='Model to train')
+    parser.add_argument('--data_path', type=str, default='./data/data.csv', help='Path to data')
+    parser.add_argument('--embedding_path', type=str, default='./models/genre_embeddings.pt', help='Path to embeddings (for VAE)')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train')
+    parser.add_argument('--batch_size', type=int, default=1, help='Batch size')
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     args = parser.parse_args()
 
     if (args.model_type == 'lstm_vae'):
@@ -109,7 +113,7 @@ def main():
     elif (args.model_type == 'embedding_model'):
         dataset = Dataset(args.data_path)
         train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
-        model = GenreEmbedding_LSTM(dataset.vocab_size, 64, 64, 32, dataset.num_labels)
+        model = GenreEmbedding_LSTM(vocab_size=dataset.vocab_size, lstm_embedding_dim=64, lstm_hidden_dim=64, genre_embedding_dim=32, num_categories=dataset.num_labels)
         train_embedding_model(model, train_loader, test_loader, args.epochs, args.lr)
         torch.save(model.get_embeddings().detach(), './models/genre_embeddings.pt')
         save_model(model, args.model_type)
@@ -117,8 +121,8 @@ def main():
     elif (args.model_type == 'simple_model'):
         dataset = Dataset(args.data_path)
         train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
-        model = SimpleLM(input_size=..., output_size=..., hidden_size=...) # TODO: finish this
-        train_simple_model(model, train_loader, test_loader, args.epochs, args.lr)
+        model = SimpleLM(input_size=64, output_size=dataset.vocab_size, hidden_size=64) # NOTSURE: input_size=64??
+        train_simple_model(model, train_loader, test_loader, args.epochs, args.lr, batch_size=args.batch_size)
         save_model(model, args.model_type)
 
     else:
