@@ -20,3 +20,7 @@ class SimpleLM(nn.Module):
         # print("output size: ", self.output_size)
         # print("linear_output shape:", linear_output.shape)
         return linear_output, (hidden_state_out, cell_state_out)
+
+    # TODO finish this method   
+    def sample(self):
+        pass
