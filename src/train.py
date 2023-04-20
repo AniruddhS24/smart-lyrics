@@ -47,27 +47,33 @@ def train_embedding_model(model, train_loader, val_loader, epochs, lr=0.001):
 
 
 # assume no batching -> default for batch_size = 1
-def train_simple_model(model, train_loader, val_loader, epochs, lr=.001, batch_size=1):
+def train_simple_model(dataset, epochs, lr=.001, seq_len=100):
     print('Training simple model...')
+    data = torch.tensor(dataset.x) # shape: torch.Size([10000, 512])
+    print(data.shape)
+    model = SimpleLM(input_size=64, output_size=dataset.vocab_size, hidden_size=128) # NOTSURE: input_size=64??
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = torch.nn.CrossEntropyLoss()
     for epoch in range(epochs):
-        model.train()
         epoch_loss = 0
-        h = torch.zeros((1, batch_size, model.hidden_size))
-        c = torch.zeros((1, batch_size, model.hidden_size))
-        for batch in train_loader:
-            optimizer.zero_grad()
-            # x shape (lyrics): torch.Size([64, 512]), y shape (label): torch.Size([64])
-            x, y = batch
-            y_hat, (h, c) = model(x, (h.detach(), c.detach()))
-            print("yhat shape:", y_hat.shape) 
-            print("y shape:", y.shape) 
-            loss = criterion(y_hat, y)
-            epoch_loss += loss.item()
-            loss.backward()
-            optimizer.step()
-        print(f'Epoch {epoch}: {epoch_loss}')
+        model.train()
+        for song in data:
+            # each song is a torch tensor of shape 512
+            data_ptr = 0    
+            h = torch.zeros((1, model.hidden_size))
+            c = torch.zeros((1, model.hidden_size))
+            while data_ptr+seq_len+1<len(song):
+                optimizer.zero_grad()
+                input = song[data_ptr:data_ptr+seq_len]
+                y_hat, (h, c) = model(torch.tensor(input), (h.detach(), c.detach()))
+                y = song[data_ptr+1:data_ptr+seq_len+1]
+                loss = criterion(y_hat.squeeze(), y)
+                epoch_loss += loss.item()
+                loss.backward()
+                optimizer.step()
+                data_ptr += seq_len
+        print(f'Epoch {epoch} loss per song: {epoch_loss/len(data)}')
+    return model
 
 
 def test_embedding_model(model, test_loader):
@@ -122,10 +128,8 @@ def main():
         save_model(model, args.model_type)
 
     elif (args.model_type == 'simple_model'):
-        dataset = Dataset(args.data_path)
-        train_loader, test_loader = create_loaders(dataset.x, dataset.y, args.batch_size)
-        model = SimpleLM(input_size=64, output_size=dataset.vocab_size, hidden_size=128) # NOTSURE: input_size=64??
-        train_simple_model(model, train_loader, test_loader, args.epochs, args.lr, batch_size=args.batch_size)
+        dataset = Dataset(args.data_path) # 10000, 512. 10k songs each of 512 words
+        model = train_simple_model(dataset, args.epochs, args.lr)
         save_model(model, args.model_type)
 
     else:
