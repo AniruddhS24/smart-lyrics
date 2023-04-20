@@ -4,6 +4,11 @@ import torch.nn as nn
 class SimpleLM(nn.Module):
     def __init__(self, input_size, output_size, hidden_size):
         super(SimpleLM, self).__init__()
+        self.kwargs = {
+            'input_size': input_size,
+            'output_size': output_size,
+            'hidden_size': hidden_size
+        }
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.embedding = nn.Embedding(output_size, input_size)
