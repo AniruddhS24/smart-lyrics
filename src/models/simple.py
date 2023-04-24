@@ -17,6 +17,7 @@ class SimpleLM(nn.Module):
         
     # state is tuple of hidden and cell states
     def forward(self, x, state):
+        x = x.long()
         embedded = self.embedding(x) # torch.Size([64, 512, 64])
         # print("embedded shape:", embedded.shape)
         lstm_output, (hidden_state_out, cell_state_out) = self.lstm(embedded, state) 
@@ -25,7 +26,17 @@ class SimpleLM(nn.Module):
         # print("output size: ", self.output_size)
         # print("linear_output shape:", linear_output.shape)
         return linear_output, (hidden_state_out, cell_state_out)
-
-    # TODO finish this method   
-    def sample(self):
-        pass
+ 
+    def sample(self, length):
+        h = torch.zeros((1, self.hidden_size))
+        c = torch.zeros((1, self.hidden_size))
+        context_arr = [0]
+        context = torch.tensor(context_arr)
+        for i in range(length):
+            len_context = len(context)
+            outputs, (h, c) = self(context, (h.detach(), c.detach()))
+            next_best_index = torch.multinomial(outputs[len_context-1].softmax(dim=0), 1)
+            # update context
+            context_arr.append(next_best_index.item())
+            context = torch.tensor(context_arr)
+        return context[1:]
