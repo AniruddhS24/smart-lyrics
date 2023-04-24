@@ -94,6 +94,6 @@ def test(model, val_loader):
         output, mu, logvar = model.forward(x, genre_embedding)
         loss = model.vae_loss(output, x, mu, logvar)
         total_loss += loss
-        # TODO: get batch_size?? idk if this is right
+        # NOTSURE: get batch_size??
         count += genre_embedding.shape[0]
     print('{:>12s} {:>7.5f}'.format('Testing loss:', total_loss/count))
