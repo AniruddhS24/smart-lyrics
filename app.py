@@ -4,7 +4,8 @@ from src.models.lstm_vae import LSTM_VAE
 from src.models.embedding_model import GenreEmbedding_LSTM
 
 tokenizer = SongTokenizer()
-kwargs, state = torch.load('./models/lstm_vae_2023-04-16_04-16-43.pt')
+map_location=torch.device('cpu')
+kwargs, state = torch.load('./models/lstm_vae_2023-04-19_21-16-28.pt', map_location=map_location)
 model = LSTM_VAE(**kwargs)
 model.load_state_dict(state)
 model.eval()
